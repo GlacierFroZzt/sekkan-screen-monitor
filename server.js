@@ -199,6 +199,24 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Transmisión directa de fotogramas por WebSocket (fallback infalible si el cortafuegos bloquea WebRTC)
+  socket.on('screen-frame', ({ frame }) => {
+    if (!userRoom) return;
+    const currentRoom = rooms.get(userRoom);
+    if (currentRoom && currentRoom.teacherSocketId) {
+      io.to(currentRoom.teacherSocketId).emit('student-frame', {
+        socketId: socket.id,
+        frame
+      });
+    }
+  });
+
+  socket.on('request-frame-stream', ({ targetSocketId }) => {
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('start-frame-stream');
+    }
+  });
+
   // Profesor solicita retransmisión (ej: tras recargar su página)
   socket.on('teacher-request-streams', () => {
     if (userRole === 'teacher' && userRoom) {

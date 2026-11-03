@@ -190,6 +190,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Recepción de fotogramas directos por WebSocket (fallback infalible si el cortafuegos bloquea WebRTC)
+  socket.on('student-frame', ({ socketId, frame }) => {
+    const student = studentsMap.get(socketId);
+    if (!student || !student.cardElement) return;
+
+    student.usingFallback = true;
+    student.status = 'sharing';
+    student.lastFrameTime = Date.now();
+
+    const img = student.cardElement.querySelector('.frame-fallback-img');
+    const video = student.cardElement.querySelector('video');
+    const overlay = student.cardElement.querySelector('.video-overlay-msg');
+
+    if (img) {
+      img.src = frame;
+      img.style.display = 'block';
+    }
+    if (video) video.style.display = 'none';
+    if (overlay) overlay.classList.add('hidden');
+
+    updateStudentCardState(socketId, 'sharing', 'En vivo (Nube)');
+
+    if (currentZoomSocketId === socketId) {
+      const zoomImg = document.getElementById('zoomImg');
+      if (zoomImg) {
+        zoomImg.src = frame;
+        zoomImg.style.display = 'block';
+      }
+      if (zoomVideo) zoomVideo.style.display = 'none';
+    }
+  });
+
   // Alumno confirma recepción de advertencia
   socket.on('warning-acknowledged', ({ name }) => {
     window.toastNotifier.show(`✓ ${name} confirmó que recibió tu aviso`, 'info', 4000);
@@ -247,8 +279,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pc.onconnectionstatechange = () => {
       console.log(`Estado WebRTC con ${student ? student.name : socketId}: ${pc.connectionState}`);
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        updateStudentCardState(socketId, 'disconnected', 'Conexión interrumpida');
+      if (pc.connectionState === 'connected') {
+        student.usingFallback = false;
+        if (student.cardElement) {
+          const img = student.cardElement.querySelector('.frame-fallback-img');
+          const video = student.cardElement.querySelector('video');
+          if (img) img.style.display = 'none';
+          if (video) video.style.display = 'block';
+        }
+        updateStudentCardState(socketId, 'sharing', 'En vivo (WebRTC)');
+      } else if (pc.connectionState === 'failed') {
+        console.warn(`WebRTC falló con ${student ? student.name : socketId}. Solicitando transmisión por WebSocket a través de Render...`);
+        socket.emit('request-frame-stream', { targetSocketId: socketId });
+      } else if (pc.connectionState === 'disconnected') {
+        // Solo marcar desconectado si tampoco tenemos frames de fallback
+        if (!student.usingFallback) {
+          updateStudentCardState(socketId, 'disconnected', 'Conexión interrumpida');
+        }
       }
     };
 
@@ -282,6 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div class="video-wrapper">
         <video autoplay playsinline muted></video>
+        <img class="frame-fallback-img" alt="Pantalla" style="display:none; width:100%; height:100%; object-fit:contain;">
         <div class="video-overlay-msg">
           <div style="font-size: 2rem;">⏳</div>
           <div>Esperando que ${escapeHtml(studentData.name)} comparta su pantalla...</div>
@@ -438,11 +486,25 @@ document.addEventListener('DOMContentLoaded', () => {
     zoomStudentName.textContent = `Pantalla de: ${student.name}`;
     zoomStudentStatus.className = student.status === 'sharing' ? 'status-dot' : 'status-dot paused';
 
-    if (student.stream) {
-      zoomVideo.srcObject = student.stream;
-      zoomVideo.play().catch(e => console.warn(e));
+    const zoomImg = document.getElementById('zoomImg');
+    if (student.usingFallback && student.cardElement) {
+      const cardImg = student.cardElement.querySelector('.frame-fallback-img');
+      if (cardImg && zoomImg) {
+        zoomImg.src = cardImg.src;
+        zoomImg.style.display = 'block';
+      }
+      if (zoomVideo) zoomVideo.style.display = 'none';
     } else {
-      zoomVideo.srcObject = null;
+      if (zoomImg) zoomImg.style.display = 'none';
+      if (zoomVideo) {
+        zoomVideo.style.display = 'block';
+        if (student.stream) {
+          zoomVideo.srcObject = student.stream;
+          zoomVideo.play().catch(e => console.warn(e));
+        } else {
+          zoomVideo.srcObject = null;
+        }
+      }
     }
 
     zoomModal.classList.add('active');
@@ -450,7 +512,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeZoomModalView() {
     zoomModal.classList.remove('active');
-    zoomVideo.srcObject = null;
+    if (zoomVideo) zoomVideo.srcObject = null;
+    const zoomImg = document.getElementById('zoomImg');
+    if (zoomImg) {
+      zoomImg.src = '';
+      zoomImg.style.display = 'none';
+    }
     currentZoomSocketId = null;
   }
   closeZoomModal.addEventListener('click', closeZoomModalView);
@@ -472,19 +539,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Captura de pantalla (Evidencia)
   function takeSnapshot(socketId, studentName) {
     const student = studentsMap.get(socketId);
-    if (!student || !student.videoElement || !student.videoElement.videoWidth) {
-      window.toastNotifier.show('No hay señal de video activa para capturar', 'warning');
+    if (!student || !student.cardElement) {
+      window.toastNotifier.show('No hay señal de pantalla activa para capturar', 'warning');
       return;
     }
 
     const video = student.videoElement;
+    const img = student.cardElement.querySelector('.frame-fallback-img');
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Agregar marca de agua con nombre y fecha/hora
+    if (student.usingFallback && img && img.naturalWidth) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      drawWatermarkAndDownload(canvas, studentName);
+    } else if (video && video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      drawWatermarkAndDownload(canvas, studentName);
+    } else {
+      window.toastNotifier.show('No hay señal de video activa para capturar', 'warning');
+    }
+  }
+
+  function drawWatermarkAndDownload(canvas, studentName) {
+    const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
     ctx.fillStyle = '#ffffff';

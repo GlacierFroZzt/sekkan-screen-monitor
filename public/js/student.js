@@ -190,6 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('teacher-left', () => {
       window.toastNotifier.show('El profesor ha cerrado temporalmente el panel del aula', 'warning');
     });
+
+    // Profesor solicita transmisión de fotogramas por WebSocket (fallback)
+    socket.on('start-frame-stream', () => {
+      console.log('Profesor solicitó fotogramas directos.');
+      startFrameStream();
+    });
   }
 
   // Confirmar recepción de advertencia
@@ -260,8 +266,43 @@ document.addEventListener('DOMContentLoaded', () => {
     handleScreenEnded();
   });
 
+  let frameStreamInterval = null;
+  const frameCanvas = document.createElement('canvas');
+  const frameCtx = frameCanvas.getContext('2d');
+
+  function startFrameStream() {
+    if (frameStreamInterval || !localStream) return;
+    console.log('Iniciando transmisión continua por WebSocket a través de Render...');
+
+    frameStreamInterval = setInterval(() => {
+      if (!localStream || !localPreviewVideo || localPreviewVideo.videoWidth === 0) return;
+
+      const vw = localPreviewVideo.videoWidth;
+      const vh = localPreviewVideo.videoHeight;
+      const maxDim = 960;
+      const scale = Math.min(1, maxDim / Math.max(vw, vh));
+      frameCanvas.width = Math.floor(vw * scale);
+      frameCanvas.height = Math.floor(vh * scale);
+
+      frameCtx.drawImage(localPreviewVideo, 0, 0, frameCanvas.width, frameCanvas.height);
+      const dataUrl = frameCanvas.toDataURL('image/jpeg', 0.55);
+
+      if (socket) {
+        socket.emit('screen-frame', { frame: dataUrl });
+      }
+    }, 180); // ~5-6 FPS óptimos para supervisión de baja latencia
+  }
+
+  function stopFrameStream() {
+    if (frameStreamInterval) {
+      clearInterval(frameStreamInterval);
+      frameStreamInterval = null;
+    }
+  }
+
   function handleScreenEnded() {
     console.log('Transmisión de pantalla detenida.');
+    stopFrameStream();
     setSharingUIState(false);
 
     if (localPreviewVideo.srcObject) {
@@ -323,7 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     peerConnection.onconnectionstatechange = () => {
       console.log(`Estado WebRTC del alumno: ${peerConnection.connectionState}`);
+      if (peerConnection.connectionState === 'failed') {
+        console.warn('WebRTC P2P bloqueado por cortafuegos. Activando transmisión vía WebSocket...');
+        startFrameStream();
+      } else if (peerConnection.connectionState === 'connected') {
+        stopFrameStream();
+      }
     };
+
+    // Si después de 3.5 segundos WebRTC sigue en 'connecting', activar stream para que el profesor no espere
+    setTimeout(() => {
+      if (peerConnection && peerConnection.connectionState !== 'connected' && localStream) {
+        console.log('Tiempo de espera WebRTC superado. Asegurando transmisión vía WebSocket...');
+        startFrameStream();
+      }
+    }, 3500);
 
     // Crear oferta SDP
     const offer = await peerConnection.createOffer();
