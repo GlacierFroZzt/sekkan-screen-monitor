@@ -171,12 +171,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Detección de aplicaciones escolares permitidas vs entretenimiento
+  function detectAppInfo(label) {
+    if (!label) return null;
+    const l = label.toLowerCase();
+    if (l.includes('canva')) return { title: 'Canva', icon: '🎨', isAllowed: true };
+    if (l.includes('word') || l.includes('winword') || l.includes('.docx')) return { title: 'Word', icon: '📄', isAllowed: true };
+    if (l.includes('powerpoint') || l.includes('powerpnt') || l.includes('.pptx')) return { title: 'PowerPoint', icon: '📊', isAllowed: true };
+    if (l.includes('excel') || l.includes('.xlsx')) return { title: 'Excel', icon: '📈', isAllowed: true };
+    if (l.includes('docs.google') || l.includes('google docs') || l.includes('documentos de google')) return { title: 'Google Docs', icon: '📝', isAllowed: true };
+    if (l.includes('slides.google') || l.includes('presentaciones de google')) return { title: 'Google Slides', icon: '📊', isAllowed: true };
+    if (l.includes('sheets.google') || l.includes('hojas de cálculo')) return { title: 'Google Sheets', icon: '📈', isAllowed: true };
+    if (l.includes('code') || l.includes('visual studio')) return { title: 'VS Code', icon: '💻', isAllowed: true };
+    if (l.includes('scratch')) return { title: 'Scratch', icon: '🐱', isAllowed: true };
+    if (l.includes('classroom')) return { title: 'Google Classroom', icon: '🏫', isAllowed: true };
+
+    if (l.includes('roblox') || l.includes('minecraft') || l.includes('brawl') || l.includes('youtube') || l.includes('tiktok') || l.includes('twitch') || l.includes('netflix') || l.includes('steam') || l.includes('discord')) {
+      return { title: label, icon: '🚨', isAllowed: false };
+    }
+
+    if (label.includes('screen') || label.includes('Pantalla')) {
+      return { title: 'Pantalla Completa', icon: '🖥️', isAllowed: true };
+    }
+
+    const clean = label.length > 20 ? label.substring(0, 18) + '...' : label;
+    return { title: clean, icon: '🪟', isAllowed: true };
+  }
+
   // Cambio de estado de la pantalla del alumno (pausado, reanudado, finalizado)
-  socket.on('student-status-changed', ({ socketId, name, status, details }) => {
+  socket.on('student-status-changed', ({ socketId, name, status, details, activeApp }) => {
     const student = studentsMap.get(socketId);
     if (!student) return;
 
     student.status = status;
+    if (activeApp) student.activeApp = activeApp;
     updateStudentCardState(socketId, status, details);
 
     if (status === 'screen_ended') {
@@ -186,7 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (soundEnabled) window.audioSynth.playDisconnectAlert();
       window.toastNotifier.show(`⚠️ ${name} pausó la transmisión de pantalla`, 'warning', 4000);
     } else if (status === 'sharing') {
-      window.toastNotifier.show(`🟢 ${name} está transmitiendo en vivo`, 'success', 3000);
+      const appInfo = detectAppInfo(student.activeApp);
+      const appText = appInfo ? ` (${appInfo.icon} ${appInfo.title})` : '';
+      window.toastNotifier.show(`🟢 ${name} está transmitiendo${appText}`, 'success', 3000);
     }
   });
 
@@ -464,6 +494,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (overlay) {
         overlay.classList.remove('hidden');
         overlay.innerHTML = `<div style="font-size: 2rem;">❌</div><div>Alumno sin conexión</div>`;
+      }
+    }
+
+    // Actualizar distintivo de la aplicación escolar (Canva, Word, Google Docs, etc.)
+    if (student.activeApp) {
+      const appInfo = detectAppInfo(student.activeApp);
+      if (appInfo) {
+        let appBadge = student.cardElement.querySelector('.app-badge');
+        if (!appBadge) {
+          appBadge = document.createElement('span');
+          appBadge.className = 'app-badge';
+          const nameContainer = student.cardElement.querySelector('.student-name');
+          if (nameContainer) nameContainer.appendChild(appBadge);
+        }
+        appBadge.className = `app-badge ${appInfo.isAllowed ? 'allowed' : 'blocked'}`;
+        appBadge.innerHTML = `${appInfo.icon} ${escapeHtml(appInfo.title)}`;
+
+        if (!appInfo.isAllowed) {
+          student.cardElement.classList.add('warning-state');
+        }
       }
     }
   }

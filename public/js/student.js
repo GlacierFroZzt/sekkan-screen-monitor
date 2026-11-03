@@ -246,6 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Iniciar negociación WebRTC hacia el profesor
       await initiateWebRTCOffer();
 
+      const activeApp = videoTrack && videoTrack.label ? videoTrack.label : 'Pantalla Completa';
+
+      socket.emit('student-status', {
+        status: 'sharing',
+        activeApp: activeApp
+      });
+
       window.toastNotifier.show('🟢 Transmitiendo pantalla al profesor', 'success');
 
     } catch (err) {
@@ -402,6 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let awayStartTime = null;
 
   function handleAwayFromClass(reason) {
+    // Si el alumno ya está transmitiendo su pantalla en vivo, es completamente normal
+    // y necesario que cambie de ventana a Word, Canva, etc. El profesor ya lo está viendo en vivo.
+    if (localStream) return;
+
     if (isCurrentlyAway) return;
     isCurrentlyAway = true;
     awayStartTime = Date.now();

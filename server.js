@@ -241,7 +241,7 @@ io.on('connection', (socket) => {
   });
 
   // Notificación de estado de pantalla del alumno ('sharing', 'paused', 'resumed', 'screen_ended')
-  socket.on('student-status', ({ status, details }) => {
+  socket.on('student-status', ({ status, details, activeApp }) => {
     if (!userRoom) return;
     const currentRoom = rooms.get(userRoom);
     if (!currentRoom) return;
@@ -249,12 +249,15 @@ io.on('connection', (socket) => {
     if (currentRoom.students.has(socket.id)) {
       const studentInfo = currentRoom.students.get(socket.id);
       studentInfo.status = status;
+      if (activeApp) studentInfo.activeApp = activeApp;
+
       if (currentRoom.teacherSocketId) {
         io.to(currentRoom.teacherSocketId).emit('student-status-changed', {
           socketId: socket.id,
           name: studentInfo.name,
           status,
           details,
+          activeApp: studentInfo.activeApp,
           timestamp: Date.now()
         });
       }
