@@ -1,0 +1,31 @@
+{
+  "name": "sekkan-screen-monitor",
+  "version": "1.0.0",
+  "description": "Sistema de monitoreo de pantallas de alumnos en tiempo real 1 a N para profesores",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "generate-cert": "node generate-cert.js",
+    "test": "node test/verify.js"
+  },
+  "keywords": [
+    "webrtc",
+    "screen-sharing",
+    "classroom",
+    "teacher",
+    "education"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "selfsigned": "^5.5.0",
+    "socket.io-client": "^4.8.4"
+  }
+}

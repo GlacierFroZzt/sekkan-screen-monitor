@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Certificados SSL locales (se generan localmente con npm run generate-cert)
+certs/
+
+# Logs y entornos
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.production
+
+# Archivos de sistema y Vercel
+.DS_Store
+Thumbs.db
+.vercel

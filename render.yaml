@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: sekkan-screen-monitor-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: "true"

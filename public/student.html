@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal del Alumno - Sekkan Screen Monitor</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <a href="/" class="brand">
+      <div class="brand-logo">S</div>
+      <div>
+        <span class="brand-text">Sekkan</span>
+        <span class="brand-badge">Alumno</span>
+      </div>
+    </a>
+    <div class="header-actions">
+      <span id="connectionBadge" style="font-size: 0.85rem; color: var(--text-secondary);">● Conectando...</span>
+      <a href="/" class="btn btn-secondary" style="font-size: 0.85rem; padding: 4px 10px;">Salir</a>
+    </div>
+  </header>
+
+  <main style="flex: 1; padding: 20px; display: flex; align-items: center; justify-content: center;">
+    
+    <!-- PASO 1: Formulario de Ingreso si faltan datos -->
+    <div id="joinFormCard" class="student-box" style="display: none;">
+      <div style="font-size: 3rem; margin-bottom: 12px;">🧑‍🎓</div>
+      <h2 style="font-size: 1.8rem; margin-bottom: 8px;">Unirse a la Clase</h2>
+      <p style="margin-bottom: 24px;">Ingresa tus datos para conectarte con el panel de tu profesor.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="inputStudentName">Tu Nombre Completo</label>
+        <input type="text" id="inputStudentName" class="form-input" placeholder="Ej: Daniel Martínez" maxlength="30">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="inputRoomCode">Código del Aula</label>
+        <input type="text" id="inputRoomCode" class="form-input" placeholder="Ej: AULA-101" maxlength="20">
+      </div>
+
+      <button id="btnJoinSubmit" class="btn btn-primary" style="width: 100%; padding: 14px;">
+        Continuar y Conectar
+      </button>
+    </div>
+
+    <!-- PASO 2: Panel de Transmisión de Pantalla del Alumno -->
+    <div id="shareCard" class="student-box" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
+        <div style="text-align: left;">
+          <h3 id="displayStudentName" style="font-size: 1.25rem;">Alumno</h3>
+          <span style="font-size: 0.85rem; color: var(--accent-cyan);" id="displayStudentRoom">Aula: AULA-101</span>
+        </div>
+        <div id="liveStatusBadge" class="student-status-badge stopped">
+          <span class="status-dot disconnected"></span>
+          <span id="liveStatusText">Sin compartir</span>
+        </div>
+      </div>
+
+      <!-- Banner de alerta si está en móvil -->
+      <div id="mobileWarningNotice" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-yellow); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px; text-align: left; font-size: 0.85rem; color: #fde68a;">
+        ⚠️ <strong>Atención dispositivo móvil:</strong> Los navegadores en iPhone, iPad o Android bloquean por privacidad compartir la pantalla completa del sistema. Para que tu profesor pueda ver tu trabajo escolar, por favor abre este enlace en una computadora (PC, Mac o Chromebook).
+      </div>
+
+      <!-- Vista previa local del video compartido -->
+      <div class="student-preview-wrapper" id="previewContainer">
+        <video id="localPreviewVideo" autoplay playsinline muted></video>
+        <div id="previewPlaceholder" style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">
+          <div style="font-size: 3rem; margin-bottom: 8px;">🖥️</div>
+          Presiona el botón de abajo para comenzar a compartir tu pantalla de trabajo con el profesor.
+        </div>
+      </div>
+
+      <!-- Controles de pantalla -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button id="btnStartShare" class="btn btn-success" style="width: 100%; padding: 14px; font-size: 1.05rem;">
+          <span>🟢 Compartir Mi Pantalla Ahora</span>
+        </button>
+
+        <button id="btnStopShare" class="btn btn-danger" style="width: 100%; padding: 12px; display: none;">
+          <span>⏹️ Detener Transmisión de Pantalla</span>
+        </button>
+      </div>
+
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 16px;">
+        🔒 Tu pantalla solo se transmite en tiempo real directamente al panel de tu profesor de esta aula. No se almacenan datos privados.
+      </p>
+    </div>
+
+  </main>
+
+  <!-- Modal de Advertencia Directa del Profesor -->
+  <div id="alertWarningModal" class="modal-backdrop">
+    <div class="warning-alert-box">
+      <div class="warning-icon">⚠️</div>
+      <h2 class="warning-title">¡Llamada de Atención!</h2>
+      <p class="warning-message" id="teacherWarningMessage">
+        El profesor solicita que regreses de inmediato a tu actividad escolar.
+      </p>
+      <button id="btnAckWarning" class="btn" style="background: white; color: #991b1b; font-weight: 700; width: 100%; padding: 14px; font-size: 1rem;">
+        ✓ Entendido, regreso a mi trabajo
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/socket.io.min.js"></script>
+  <script src="/js/webrtc-common.js"></script>
+  <script src="/js/student.js"></script>
+</body>
+</html>

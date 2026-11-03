@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sekkan Screen Monitor - Monitoreo de Pantallas en Vivo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <a href="/" class="brand">
+      <div class="brand-logo">S</div>
+      <div>
+        <span class="brand-text">Sekkan</span>
+        <span class="brand-badge">Monitor 1 a N</span>
+      </div>
+    </a>
+    <div class="header-actions">
+      <button id="btnConfigBackend" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" title="Configurar URL del servidor Render">
+        ⚙️ Servidor
+      </button>
+      <span style="font-size: 0.85rem; color: var(--text-secondary);" id="connectionStatus">● Listo</span>
+    </div>
+  </header>
+
+  <!-- Hero Container -->
+  <main class="hero-container">
+    <h1 class="hero-title">Monitoreo de Pantallas para Aulas</h1>
+    <p class="hero-subtitle">
+      Supervisa en tiempo real las pantallas de tus alumnos desde cualquier navegador. Diseñado para Chrome, Safari, Edge y Firefox.
+    </p>
+
+    <!-- Tarjetas de Selección de Rol -->
+    <div class="role-cards-grid">
+      <!-- Tarjeta Profesor -->
+      <div class="role-card teacher">
+        <div class="role-icon">👨‍🏫</div>
+        <h3>Soy Profesor</h3>
+        <p>Crea un aula virtual para monitorear en un mosaico dinámico las pantallas de todos tus alumnos, proyectar el código QR y enviar advertencias.</p>
+        
+        <div class="form-group">
+          <label class="form-label" for="roomNameInput">Código o Nombre del Aula</label>
+          <input type="text" id="roomNameInput" class="form-input" placeholder="Ej: AULA-101" maxlength="20">
+        </div>
+
+        <button id="btnCreateRoom" class="btn btn-primary" style="width: 100%;">
+          <span>🚀 Crear e Iniciar Aula</span>
+        </button>
+      </div>
+
+      <!-- Tarjeta Alumno -->
+      <div class="role-card student">
+        <div class="role-icon">🧑‍🎓</div>
+        <h3>Soy Alumno</h3>
+        <p>Únete a la clase de tu profesor ingresando tu nombre y el código de aula para comenzar a transmitir tu pantalla de trabajo.</p>
+        
+        <div class="form-group">
+          <label class="form-label" for="studentNameInput">Tu Nombre Completo</label>
+          <input type="text" id="studentNameInput" class="form-input" placeholder="Ej: Carlos Gómez" maxlength="30">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="studentRoomInput">Código del Aula</label>
+          <input type="text" id="studentRoomInput" class="form-input" placeholder="Ej: AULA-101" maxlength="20">
+        </div>
+
+        <button id="btnJoinRoom" class="btn btn-success" style="width: 100%;">
+          <span>📡 Unirme a la Clase</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Banner de información de compatibilidad -->
+    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; font-size: 0.85rem; color: var(--text-muted); max-width: 700px; margin: 0 auto;">
+      💡 <strong>Recomendación para alumnos:</strong> Utilizar computadoras (Windows, Mac, Chromebook) con Google Chrome, Apple Safari, Microsoft Edge o Firefox para poder compartir la pantalla completa o cualquier aplicación de trabajo.
+    </div>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/socket.io.min.js"></script>
+  <script src="/js/webrtc-common.js"></script>
+  <script>
+    // Inicializar audio al interactuar
+    document.addEventListener('click', () => window.audioSynth.init(), { once: true });
+
+    // Botón de configuración de backend
+    const btnConfigBackend = document.getElementById('btnConfigBackend');
+    if (btnConfigBackend) {
+      btnConfigBackend.addEventListener('click', () => window.BACKEND_CONFIG.promptConfig());
+    }
+
+    // Acciones de creación y unión
+    const btnCreateRoom = document.getElementById('btnCreateRoom');
+    const roomNameInput = document.getElementById('roomNameInput');
+    const btnJoinRoom = document.getElementById('btnJoinRoom');
+    const studentNameInput = document.getElementById('studentNameInput');
+    const studentRoomInput = document.getElementById('studentRoomInput');
+
+    // Generar código aleatorio por defecto si está vacío
+    const defaultRoom = 'AULA-' + Math.floor(100 + Math.random() * 900);
+    roomNameInput.placeholder = defaultRoom;
+
+    btnCreateRoom.addEventListener('click', () => {
+      const room = (roomNameInput.value.trim() || defaultRoom).toUpperCase();
+      window.location.href = `/teacher?room=${encodeURIComponent(room)}`;
+    });
+
+    btnJoinRoom.addEventListener('click', () => {
+      const name = studentNameInput.value.trim();
+      const room = studentRoomInput.value.trim().toUpperCase();
+
+      if (!name) {
+        alert('Por favor ingresa tu nombre.');
+        studentNameInput.focus();
+        return;
+      }
+      if (!room) {
+        alert('Por favor ingresa el código del aula proporcionado por tu profesor.');
+        studentRoomInput.focus();
+        return;
+      }
+
+      window.location.href = `/student?room=${encodeURIComponent(room)}&name=${encodeURIComponent(name)}`;
+    });
+  </script>
+</body>
+</html>

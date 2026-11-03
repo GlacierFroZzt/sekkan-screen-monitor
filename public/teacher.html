@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del Profesor - Sekkan Screen Monitor</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+</head>
+<body>
+  <!-- Header del Profesor -->
+  <header class="app-header">
+    <a href="/" class="brand">
+      <div class="brand-logo">S</div>
+      <div>
+        <span class="brand-text">Sekkan</span>
+        <span class="brand-badge">Profesor</span>
+      </div>
+    </a>
+    <div class="header-actions">
+      <button id="btnConfigBackend" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" title="Configurar URL del servidor Render">
+        ⚙️ Servidor
+      </button>
+      <button id="btnSoundToggle" class="btn-icon" title="Sonido activado / silenciar">
+        <span id="soundIcon">🔊</span>
+      </button>
+      <button id="btnGlobalAlert" class="btn btn-warning" style="font-size: 0.85rem; padding: 6px 12px;">
+        <span>📢 Alerta Global</span>
+      </button>
+      <a href="/" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+        Salir
+      </a>
+    </div>
+  </header>
+
+  <!-- Barra de Control del Aula -->
+  <div class="dashboard-bar">
+    <div class="room-meta-group">
+      <div class="room-badge">
+        <span>AULA:</span>
+        <span id="displayRoomId">CARGANDO...</span>
+      </div>
+      <button id="btnCopyLink" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+        📋 Copiar Enlace
+      </button>
+      <button id="btnShowQr" class="btn btn-primary" style="font-size: 0.85rem; padding: 6px 12px;">
+        📱 Código QR Proyectable
+      </button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="counter-badge">
+        <span>👥</span>
+        <span id="studentCount">0</span>
+        <span>alumnos en vivo</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor del Mosaico Dinámico de Pantallas (1 a N) -->
+  <main id="screensContainer" class="screens-container" data-count="0">
+    <!-- Estado Inicial / Vacío -->
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">📺</div>
+      <h2 class="empty-title">Esperando a que los alumnos se unan</h2>
+      <p style="max-width: 500px; margin-bottom: 24px;">
+        Comparte el código del aula o proyecta el código QR para que los alumnos ingresen desde sus computadoras y comiencen a transmitir.
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button id="btnEmptyQr" class="btn btn-primary">
+          <span>Proyectar Código QR</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Código QR y Enlace de Sala -->
+  <div id="qrModal" class="modal-backdrop">
+    <div class="modal-content" style="text-align: center;">
+      <button class="modal-close-btn" id="closeQrModal">&times;</button>
+      <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Código QR del Aula</h3>
+      <p style="font-size: 0.9rem; margin-bottom: 16px;">
+        Proyecta este código para que los alumnos lo escaneen o ingresen la URL directa.
+      </p>
+      
+      <div style="background: white; padding: 16px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 16px; box-shadow: var(--shadow-md);">
+        <img id="qrImage" src="" alt="Código QR del Aula" style="width: 260px; height: 260px; display: block;">
+      </div>
+
+      <div style="background: var(--bg-tertiary); padding: 10px; border-radius: var(--radius-md); font-family: monospace; font-size: 0.9rem; word-break: break-all; margin-bottom: 16px; border: 1px solid var(--border-color);" id="qrUrlText">
+        Cargando enlace...
+      </div>
+
+      <button id="btnCopyFromModal" class="btn btn-secondary" style="width: 100%;">
+        📋 Copiar Enlace Directo
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Zoom HD de Pantalla de Alumno -->
+  <div id="zoomModal" class="modal-backdrop">
+    <div class="modal-content modal-zoom">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 id="zoomStudentName" style="font-size: 1.3rem;">Pantalla del Alumno</h3>
+          <span id="zoomStudentStatus" class="status-dot"></span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btnZoomSnapshot" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+            📸 Tomar Captura (Evidencia)
+          </button>
+          <button id="btnZoomSendWarning" class="btn btn-warning" style="font-size: 0.85rem; padding: 6px 12px;">
+            ⚠️ Enviar Llamada de Atención
+          </button>
+          <button class="modal-close-btn" id="closeZoomModal" style="position: static; margin-left: 8px;">&times;</button>
+        </div>
+      </div>
+      
+      <div class="zoom-video-container">
+        <video id="zoomVideo" autoplay playsinline></video>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Enviar Advertencia / Mensaje al Alumno -->
+  <div id="warningModal" class="modal-backdrop">
+    <div class="modal-content">
+      <button class="modal-close-btn" id="closeWarningModal">&times;</button>
+      <h3 style="margin-bottom: 8px;">Enviar Mensaje / Llamada de Atención</h3>
+      <p id="warningTargetText" style="font-size: 0.9rem; margin-bottom: 16px; color: var(--accent-cyan);">
+        Destinatario: Alumno
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Mensajes Rápidos Predeterminados</label>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <button class="btn btn-secondary preset-msg-btn" style="text-align: left; font-size: 0.85rem; padding: 8px 12px;" data-msg="Por favor regresa a tu actividad escolar ahora mismo.">
+            ⚠️ "Por favor regresa a tu actividad escolar ahora mismo."
+          </button>
+          <button class="btn btn-secondary preset-msg-btn" style="text-align: left; font-size: 0.85rem; padding: 8px 12px;" data-msg="Cierra la ventana de juegos o redes sociales.">
+            🎮 "Cierra la ventana de juegos o redes sociales."
+          </button>
+          <button class="btn btn-secondary preset-msg-btn" style="text-align: left; font-size: 0.85rem; padding: 8px 12px;" data-msg="El profesor está observando tu pantalla en tiempo real.">
+            👀 "El profesor está observando tu pantalla en tiempo real."
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="customWarningInput">O escribe un mensaje personalizado:</label>
+        <textarea id="customWarningInput" class="form-input" rows="3" placeholder="Ej: Juan, abre el documento de la lección 4..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="btnCancelWarning" class="btn btn-secondary">Cancelar</button>
+        <button id="btnSubmitWarning" class="btn btn-danger">🚀 Enviar Alerta Inmediata</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/socket.io.min.js"></script>
+  <script src="/js/webrtc-common.js"></script>
+  <script src="/js/teacher.js"></script>
+</body>
+</html>

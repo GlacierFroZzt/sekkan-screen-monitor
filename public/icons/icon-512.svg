@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <!-- Screen frame -->
+  <rect x="76" y="96" width="360" height="230" rx="18" fill="#1e293b" stroke="#38bdf8" stroke-width="12"/>
+  <!-- Inner monitor display -->
+  <rect x="96" y="116" width="320" height="190" rx="10" fill="url(#screenGrad)" opacity="0.9"/>
+  <!-- Screen Grid Lines -->
+  <line x1="256" y1="116" x2="256" y2="306" stroke="#ffffff" stroke-width="4" stroke-dasharray="8 6" opacity="0.6"/>
+  <line x1="96" y1="211" x2="416" y2="211" stroke="#ffffff" stroke-width="4" stroke-dasharray="8 6" opacity="0.6"/>
+  <!-- Monitor Stand -->
+  <path d="M 226 338 L 206 400 L 306 400 L 286 338 Z" fill="#334155"/>
+  <rect x="176" y="400" width="160" height="16" rx="8" fill="#475569"/>
+  <!-- Broadcast waves -->
+  <circle cx="256" cy="211" r="28" fill="#ffffff" opacity="0.9"/>
+  <circle cx="256" cy="211" r="50" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.6"/>
+</svg>
