@@ -56,12 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   displayRoomId.textContent = roomId;
 
+  const backendUrl = window.BACKEND_CONFIG ? window.BACKEND_CONFIG.getBackendUrl() : window.location.origin;
+  console.log(`📡 Conectando al backend en: ${backendUrl}`);
+
   // Construcción del enlace para los alumnos (incluye el parámetro del servidor para garantizar conexión)
   const studentUrl = `${window.location.origin}/student?room=${encodeURIComponent(roomId)}&server=${encodeURIComponent(backendUrl)}`;
   qrUrlText.textContent = studentUrl;
-
-  const backendUrl = window.BACKEND_CONFIG ? window.BACKEND_CONFIG.getBackendUrl() : window.location.origin;
-  console.log(`📡 Conectando al backend en: ${backendUrl}`);
 
   // Botón de configuración de servidor Render
   const btnConfigBackend = document.getElementById('btnConfigBackend');
