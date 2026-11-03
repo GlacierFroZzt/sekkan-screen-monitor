@@ -30,10 +30,12 @@ jobs:
       - name: Aceptar licencias del SDK de Android
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Generar Gradle Wrapper y Compilar APK
+      - name: Descargar Wrapper Oficial y Compilar APK
         run: |
           cd android
-          gradle wrapper --gradle-version 8.4
+          mkdir -p gradle/wrapper
+          curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar
+          curl -sLo gradlew https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradlew
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../Sekkan-Monitor-Student.apk
