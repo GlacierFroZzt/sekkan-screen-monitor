@@ -217,6 +217,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Detección de distracción / abandono de pestaña / cambio a juegos en móviles o PC
+  socket.on('student-distraction-event', (data) => {
+    if (!userRoom) return;
+    const currentRoom = rooms.get(userRoom);
+    if (currentRoom && currentRoom.teacherSocketId) {
+      io.to(currentRoom.teacherSocketId).emit('student-distraction-alert', {
+        socketId: socket.id,
+        name: userName,
+        type: data.type, // 'away' | 'returned'
+        details: data.details,
+        durationSec: data.durationSec,
+        timestamp: Date.now()
+      });
+    }
+  });
+
   // Profesor solicita retransmisión (ej: tras recargar su página)
   socket.on('teacher-request-streams', () => {
     if (userRole === 'teacher' && userRoom) {

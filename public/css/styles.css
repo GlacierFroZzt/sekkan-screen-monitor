@@ -476,6 +476,51 @@ a:hover {
   animation: pulse-border 1.5s infinite;
 }
 
+.student-card.distracted-state {
+  border-color: #ef4444 !important;
+  animation: pulse-distracted 1.2s infinite !important;
+}
+
+@keyframes pulse-distracted {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  50% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.distraction-banner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  background: rgba(185, 28, 28, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  z-index: 25;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #ef4444;
+  display: none;
+  animation: slide-down 0.25s ease;
+}
+
+.distraction-banner.active {
+  display: block;
+}
+
+.distraction-banner.returned {
+  display: block;
+  background: rgba(16, 185, 129, 0.95);
+  border-color: #10b981;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes pulse-border {
   0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
   70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }

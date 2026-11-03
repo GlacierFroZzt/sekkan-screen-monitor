@@ -222,6 +222,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Alerta de distracción / abandono de pestaña recibida (Solución Móviles y PC)
+  socket.on('student-distraction-alert', ({ socketId, name, type, details, durationSec, timestamp }) => {
+    const student = studentsMap.get(socketId);
+    if (!student || !student.cardElement) return;
+
+    let banner = student.cardElement.querySelector('.distraction-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.className = 'distraction-banner';
+      student.cardElement.querySelector('.video-wrapper').appendChild(banner);
+    }
+
+    if (type === 'away') {
+      if (soundEnabled) window.audioSynth.playWarningAlert();
+      student.cardElement.classList.add('distracted-state');
+      student.awayStart = timestamp || Date.now();
+
+      if (student.distractionTimer) clearInterval(student.distractionTimer);
+      student.distractionTimer = setInterval(() => {
+        const elapsed = Math.round((Date.now() - student.awayStart) / 1000);
+        banner.innerHTML = `🚨 <strong>FUERA DE LA CLASE</strong> (Ausente: ${elapsed}s)`;
+      }, 1000);
+
+      banner.innerHTML = `🚨 <strong>FUERA DE LA CLASE</strong> (Ausente: 1s)`;
+      banner.className = 'distraction-banner active';
+
+      window.toastNotifier.show(`🚨 ¡Atención! ${name} minimizó la app o abrió otra aplicación`, 'error', 6000);
+    } else if (type === 'returned') {
+      if (student.distractionTimer) {
+        clearInterval(student.distractionTimer);
+        student.distractionTimer = null;
+      }
+      student.cardElement.classList.remove('distracted-state');
+      const timeText = durationSec ? `${durationSec} segundos` : 'unos segundos';
+      banner.className = 'distraction-banner returned';
+      banner.innerHTML = `🟢 <strong>Regresó</strong> (Estuvo fuera ${timeText})`;
+
+      window.toastNotifier.show(`🟢 ${name} regresó a la clase tras ${timeText}`, 'success', 4000);
+
+      setTimeout(() => {
+        if (!student.cardElement.classList.contains('distracted-state') && banner) {
+          banner.className = 'distraction-banner';
+        }
+      }, 4500);
+    }
+  });
+
   // Alumno confirma recepción de advertencia
   socket.on('warning-acknowledged', ({ name }) => {
     window.toastNotifier.show(`✓ ${name} confirmó que recibió tu aviso`, 'info', 4000);

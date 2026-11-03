@@ -394,4 +394,61 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('student-status', { status: 'sharing' });
     console.log('Oferta SDP enviada al profesor.');
   }
+
+  // =========================================================================
+  // SENSOR DE ABANDONO Y FOCO (ANTI-DISTRACCIÓN EN MÓVILES Y PC)
+  // =========================================================================
+  let isCurrentlyAway = false;
+  let awayStartTime = null;
+
+  function handleAwayFromClass(reason) {
+    if (isCurrentlyAway) return;
+    isCurrentlyAway = true;
+    awayStartTime = Date.now();
+    console.log(`[Sensor] Alumno salió de la app / pestaña: ${reason}`);
+
+    if (socket && socket.connected) {
+      socket.emit('student-distraction-event', {
+        type: 'away',
+        details: reason,
+        timestamp: awayStartTime
+      });
+    }
+  }
+
+  function handleReturnedToClass() {
+    if (!isCurrentlyAway) return;
+    isCurrentlyAway = false;
+    const durationSec = awayStartTime ? Math.round((Date.now() - awayStartTime) / 1000) : 0;
+    awayStartTime = null;
+    console.log(`[Sensor] Alumno regresó tras ${durationSec}s`);
+
+    if (socket && socket.connected) {
+      socket.emit('student-distraction-event', {
+        type: 'returned',
+        durationSec,
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      handleAwayFromClass('Cambió de app o minimizó el navegador');
+    } else {
+      handleReturnedToClass();
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.hidden || !document.hasFocus()) {
+        handleAwayFromClass('Abrió otra app o perdió el foco');
+      }
+    }, 400);
+  });
+
+  window.addEventListener('focus', () => {
+    handleReturnedToClass();
+  });
 });

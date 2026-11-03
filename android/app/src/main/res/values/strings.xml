@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Sekkan Monitor</string>
+    <string name="title_student">Portal del Alumno (Android)</string>
+    <string name="btn_start_share">🟢 Iniciar Transmisión de Pantalla</string>
+    <string name="btn_stop_share">⏹️ Detener Transmisión</string>
+    <string name="status_not_sharing">Sin transmitir</string>
+    <string name="status_sharing">Transmitiendo en vivo al profesor</string>
+</resources>
