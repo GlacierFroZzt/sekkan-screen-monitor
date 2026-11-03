@@ -78,7 +78,11 @@ public class ScreenCaptureService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
 
-        startForeground(1001, notification);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1001, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        } else {
+            startForeground(1001, notification);
+        }
 
         // Inicializar conexión Socket.io
         initSocket(studentName, roomCode);
@@ -96,7 +100,7 @@ public class ScreenCaptureService extends Service {
     private void initSocket(String name, String room) {
         try {
             socket = IO.socket(SERVER_URL);
-            socket.on(Socket.EVENT_CONNECT, args -> {
+            socket.on("connect", args -> {
                 Log.d(TAG, "Conectado al servidor en Render desde Android");
                 try {
                     JSONObject joinData = new JSONObject();

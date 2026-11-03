@@ -22,20 +22,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Gradle 8.4
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.4'
-
       - name: Aceptar licencias del SDK de Android
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Descargar Wrapper Oficial y Compilar APK
+      - name: Compilar APK Android
         run: |
           cd android
-          mkdir -p gradle/wrapper
-          curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradle/wrapper/gradle-wrapper.jar
-          curl -sLo gradlew https://raw.githubusercontent.com/gradle/gradle/v8.4.0/gradlew
+          sed -i 's/\r$//' gradlew
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../Sekkan-Monitor-Student.apk
