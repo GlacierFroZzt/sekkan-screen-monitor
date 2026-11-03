@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -19,23 +22,37 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Gradle
+      - name: Configurar Gradle 8.4
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
 
-      - name: Aceptar licencias de Android SDK
+      - name: Aceptar licencias del SDK de Android
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Compilar APK Android
+      - name: Generar Gradle Wrapper y Compilar APK
         run: |
           cd android
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../Sekkan-Monitor-Student.apk
 
-      - name: Subir APK compilada como artefacto descargable
+      - name: Subir APK a Artefactos de GitHub
         uses: actions/upload-artifact@v4
         with:
           name: Sekkan-Monitor-Student-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: Sekkan-Monitor-Student.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Crear Release Pública con Enlace Directo
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "Sekkan Monitor Android APK v1.0.0"
+          body: "Descarga directa de la aplicación Android para transmitir la pantalla completa a tu profesor."
+          files: Sekkan-Monitor-Student.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
