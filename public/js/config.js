@@ -4,14 +4,24 @@
  */
 
 const BACKEND_CONFIG = {
-  // Reemplaza esta URL con la URL de tu servicio Web en Render cuando lo crees
-  // Ejemplo: 'https://sekkan-backend.onrender.com'
-  DEFAULT_RENDER_URL: '',
+  // URL activa de tu servicio en Render
+  DEFAULT_RENDER_URL: 'https://sekkan-screen-monitor.onrender.com',
 
   /**
    * Obtiene la URL activa del servidor backend (Render o Local)
    */
   getBackendUrl() {
+    // 0. Si viene en el parámetro de la URL (?server=https://...)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const serverParam = urlParams.get('server');
+      if (serverParam && serverParam.trim().startsWith('http')) {
+        const clean = serverParam.trim().replace(/\/$/, '');
+        localStorage.setItem('SEKKAN_BACKEND_URL', clean);
+        return clean;
+      }
+    } catch (e) {}
+
     // 1. Si el usuario configuró una URL manual en la interfaz
     const saved = localStorage.getItem('SEKKAN_BACKEND_URL');
     if (saved && saved.trim()) {
@@ -22,20 +32,18 @@ const BACKEND_CONFIG = {
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.');
     if (isLocal) {
-      // Si el frontend se sirve desde el mismo servidor Node (puerto 3000)
       if (window.location.port === '3000') {
         return window.location.origin;
       }
-      // Si el frontend se ejecuta en otro puerto local (ej: Vite o LiveServer)
       return `${window.location.protocol}//${host}:3000`;
     }
 
-    // 3. Si se definió una URL de Render por defecto en este archivo
+    // 3. Servidor de Render por defecto
     if (this.DEFAULT_RENDER_URL && this.DEFAULT_RENDER_URL.trim()) {
       return this.DEFAULT_RENDER_URL.trim().replace(/\/$/, '');
     }
 
-    // 4. Si está en Vercel y aún no tiene URL configurada, usar el origen por defecto
+    // 4. Fallback al origen actual
     return window.location.origin;
   },
 
@@ -56,7 +64,7 @@ const BACKEND_CONFIG = {
   promptConfig() {
     const current = this.getBackendUrl();
     const input = prompt(
-      'Configura la URL de tu backend en Render:\n(Ejemplo: https://tu-servicio.onrender.com)',
+      'Configura la URL de tu backend en Render:\n(Ejemplo: https://sekkan-screen-monitor.onrender.com)',
       current === window.location.origin ? '' : current
     );
 

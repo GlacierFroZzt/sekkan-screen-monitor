@@ -132,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    let studentPendingCandidates = [];
+
     // Respuestas de señalización WebRTC del profesor
     socket.on('signal', async ({ data }) => {
       if (!peerConnection) return;
@@ -140,14 +142,31 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Respuesta SDP del profesor recibida');
         try {
           await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+
+          // Drenar candidatos en cola
+          if (studentPendingCandidates.length > 0) {
+            console.log(`Drenando ${studentPendingCandidates.length} candidatos ICE del profesor`);
+            for (const cand of studentPendingCandidates) {
+              try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+              } catch (e) {
+                console.warn('Error drenando candidato ICE:', e);
+              }
+            }
+            studentPendingCandidates = [];
+          }
         } catch (e) {
           console.error('Error al aplicar SDP answer:', e);
         }
       } else if (data.candidate) {
-        try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (e) {
-          console.error('Error al agregar ICE candidate:', e);
+        if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (e) {
+            console.error('Error al agregar ICE candidate:', e);
+          }
+        } else {
+          studentPendingCandidates.push(data.candidate);
         }
       }
     });

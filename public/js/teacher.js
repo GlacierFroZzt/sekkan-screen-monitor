@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   displayRoomId.textContent = roomId;
 
-  // Construcción del enlace para los alumnos
-  const studentUrl = `${window.location.origin}/student?room=${encodeURIComponent(roomId)}`;
+  // Construcción del enlace para los alumnos (incluye el parámetro del servidor para garantizar conexión)
+  const studentUrl = `${window.location.origin}/student?room=${encodeURIComponent(roomId)}&server=${encodeURIComponent(backendUrl)}`;
   qrUrlText.textContent = studentUrl;
 
   const backendUrl = window.BACKEND_CONFIG ? window.BACKEND_CONFIG.getBackendUrl() : window.location.origin;
@@ -133,6 +133,20 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Recibida oferta WebRTC del alumno ${student.name}`);
         const pc = getOrCreatePeerConnection(senderSocketId);
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+        // Drenar candidatos ICE que hayan llegado antes de la oferta
+        if (student.pendingCandidates && student.pendingCandidates.length > 0) {
+          console.log(`Drenando ${student.pendingCandidates.length} candidatos ICE acumulados de ${student.name}`);
+          for (const cand of student.pendingCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {
+              console.warn('Error drenando candidato ICE:', e);
+            }
+          }
+          student.pendingCandidates = [];
+        }
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -144,10 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (data.candidate) {
       const pc = getOrCreatePeerConnection(senderSocketId);
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (err) {
-        console.error('Error al agregar ICE candidate:', err);
+      if (pc.remoteDescription && pc.remoteDescription.type) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (err) {
+          console.error('Error al agregar ICE candidate:', err);
+        }
+      } else {
+        if (!student.pendingCandidates) student.pendingCandidates = [];
+        student.pendingCandidates.push(data.candidate);
       }
     }
   });
